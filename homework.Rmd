@@ -18,17 +18,77 @@ where $c$ is a normalising constant and $b$ is a parameter.
 
 * Find $c$ such that the probability density function is valid.
 
+A PDF is valid if integrating it over its bounds results in 1, or when $\int_0^b\frac{c}{\sqrt{x(b-x)}}dx=1$. Thus, we solve for c as follows, using trig substitution:
+$$c=\frac{1}{\int_0^b\frac{1}{\sqrt{x(b-x)}}dx}$$
+$x=bsin^2\theta$ and thus $dx=2b\sin\theta \cos\theta$, since it is a standard trig substitution. Adjusting the bounds of the integral, we have $0=b\sin^2\theta \rightarrow\theta=0$ and $b=b\sin^2\theta\rightarrow\theta=\frac{\pi}{2}$. Plugging in our substitution, we get:
+$$c=\frac{1}{2\int_0^{\frac{\pi}{2}}\frac{b\sin\theta\cos\theta}{\sqrt{b\sin^2\theta(b-b\sin^2\theta)}} d\theta}=\frac{1}{2\int_0^{\frac{\pi}{2}}\frac{b\sin\theta\cos\theta}{\sqrt{b^2 \sin^2\theta(cos^2\theta)}} d\theta}$$
+Hence,
+$$c=\frac{1}{2\int_0^\frac{\pi}{2}\frac{b\sin\theta\cos\theta}{b\sin\theta\cos\theta}d\theta}=\frac{1}{2\frac{\pi}{2}}=\boxed{\frac{1}{\pi}}$$
+Thus, the PDF is valid when c is $\frac{1}{\pi}$.
+
 * Find the corresponding cumulative distribution function, $F(x)$ and its inverse $F^{-1}(x)$.
+To find the CDF, integrate from 0 to x the PDF using a dummy variable, for instance, t.
+$$F(x)=\int_0^x\frac{1}{\pi\sqrt{t(b-t})}dt$$
+From the previous part, we know that $\frac{dt}{\sqrt{t(b-t)}}=2d\theta$ when using the substitution $t=b\sin^2\theta$. Adjusting the bounds, we have $0=b\sin^2\theta \rightarrow\theta=0$ and $x=b\sin^2\theta \rightarrow \theta=\arcsin(\sqrt{\frac{x}{b}})$. Compiling this, we get:
+
+$$\boxed{F(x)=\frac{2\arcsin(\sqrt{\frac{x}{b}})}{\pi}; \ 0<x<b}$$
+with $F(x)=0$ for $x\leq 0$ and $F(x)=1$ for $x\geq b$.
+
+We can solve for the inverse by simply rearranging the equation and replacing the variables. To find the domain, we use the fact that for the square root in $F(x)$ to be valid, $\frac{x}{b}\geq0$, meaning $0\leq \arcsin (\sqrt{\frac{x}{b}})\leq \frac{\pi}{2}$, and therefore $0\leq F(x)\leq1$. Since the domain of an inverse function is the original function's range, the inverse is valid for $0<x<1$.
+
+$$\boxed{F^{-1}(x)=b\sin^2(\frac{\pi x}{2}); \ 0<x<1}$$
 
 * Describe a procedure to generate samples distributed according to $X$, given a set of uniformly distributed samples $u_1,\dots,u_n \sim \mathcal{U}[0,1]$.
 
+Using the Universality of the Uniform, plugging in a $U(0,1)$ random variable into an inverse CDF causes it to be distributed according to the original function. In other words, $F^{-1}(U)$ is distributed the same as $X$, since $F^{-1}$ is the inverse CDF of $X$. Thus, we can generate as many samples as needed by finding $F^{-1}(U_1), F^{-1}(U_2),...$.
+
+
 * Set the seed to 42 and generate 1,000 samples distributed according to $X$ using 1,000 uniformly distributed i.i.d. $\mathcal{U}[0,1]$ samples, with $b=5$. Plot a histogram of the resulting samples.
+```{r}
+set.seed(42)
+
+n <- 1000
+b <- 5
+
+#Define u and F_inv
+
+u <- runif(n)
+
+F_inv <- function(u, b) {
+  b * (sin(pi * u / 2))^2
+}
+
+x <- F_inv(u, b)
+
+#Plot histogram
+hist(
+  x,
+  probability = TRUE,
+  main = "Histogram of Samples from X (b = 5, n = 1000)",
+  xlab = "x",
+  ylim = c(0,0.6)
+)
+```
+
 
 * Assume that we have a set of samples $X_1,\dots,X_n$ which are i.i.d. as $X$ with $b$ unknown. Find the log-likelihood function for the parameter $b$, $\ell(b;x_1,\dots,x_n)$ and find its derivative with respect to $b$, $\frac{d\ell}{db}$.
 
+Let $\ell(b;\mathbf{x}) = \log L(b;\mathbf{x})=\sum\limits^n_{j=1}\log f(x_j; b)$, where $f$ is the PDF of $X$ as given in the first part. Hence, $$\ell = \sum\limits^n_{j=1}\log (\frac{1}{\pi \sqrt{x_j(b-x_j)}})=\sum\limits^n_{j=1}[-\log (\pi)-\frac{1}{2}\log(x_j)-\frac{1}{2}\log (b-x_j)]$$
+We can drop any additive constants since they would become 0 when finding the derivative w.r.t. $b$, so $$\dfrac{d\ell}{db}=\dfrac{d}{db}[-\frac{1}{2}\sum\limits^n_{j=1}\log(b-x_j)]=-\frac{1}{2}\sum\limits^n_{j=1}\frac{1}{b-x_j}$$
+
 * Based on the likelihood, or otherwise, give a statistic based on $X_1,\dots,X_n$ which is a reasonable estimator for the unknown parameter $b$. Explain your choice.
 
+We can use MLE (maximum likelihood estimation) to estimate $b$. In this case, we want to maximize the likelihood, so we check for cases where $\dfrac{d\ell}{db}=0$, as well as at the endpoints. In this case, we cannot solve for $-\frac{1}{2} \sum\limits^n_{j=1}\frac{1}{b-x_j} = 0$, so the maximum likelihood must be at either one of the endpoints. Since it is given that the support of X is $0<x<b$, $b>X_{(n)},$ which is the order statistic for the maximum value of X in the sample. Hence, we know that the domain of the likelihood function is $(X_{(n)},\infty)$, meaning $\frac{1}{b-x_j}$ is always positive and thus the derivative of the likelihood function is always negative. Thus, we know that we can reasonably estimate $b$ to be the value that is closest to $X_{(n)}$ as possible, as this is the smallest value that $b$ can possibly be. In other words, $\hat{b} = X_{max}$.
+
 * The file `samples.rds` contains samples $X_1,\dots,X_n$ distributed according to $X$. Report the estimated value of $\hat{b}$ based on those samples.
+
+```{r}
+x <- readRDS("hw_files/data/samples.rds")
+summary(x)
+max(x)
+```
+Hence, $X_{max}=85.19952$, so $\hat{b} =85.19952$.
+
 
 ## Arrays
 
@@ -38,9 +98,34 @@ You are given a multi-dimensional array `array.rds`. It contains penetrance curv
 
 _Hint: Use the `str` function._
 
+```{r}
+x <- readRDS("hw_files/data/array.rds")
+str(x)
+```
+Hence the array has 5 dimensions: cancer, gene, race, sex, and age.
+
 * Subset the array for the penetrances associated with `Breast` cancer and the `BRCA2` gene for a female with the default race `All_Races`. Then plot the penetrance curve (probability versus age).
 
+```{r}
+x["Breast", "BRCA2", "All_Races", "Female", ]
+prob <- x["Breast", "BRCA2", "All_Races", "Female", ]
+age <- seq_along(prob)
+plot(age, prob,
+  xlab = 'Age',
+  ylab = 'Probability',
+  main = 'Penetrance Curve')
+```
+
+
 * Subset the array for the penetrances associated with `Colorectal` cancer and the `PALB2` gene for an Asian male. What is the probability that a person from this subpopulation at age 50 will develop colorectal cancer in the next 10 years given that he has tested positive for a PALB2 mutation but is otherwise disease free?
+
+The probability being asked for is just the union of all the probabilities between ages 50 and 60 while fixing the following parameters. Thus, all we need to do is sum the probability of each age between 50 and 60, which will give us the total probability of testing positive in the next 10 years.
+
+```{r}
+sum(x["Colorectal", "PALB2", "Asian", "Male", 1:94])
+
+```
+
 
 ## Family pedigrees
 
@@ -54,4 +139,52 @@ In the following exercises, you are encouraged to modularise and comment on your
 
 * Write an R function(s) to count the number of unique nuclear families there are in a certain pedigree. A nuclear family is defined as the set of two parents and all of their children.
 
+```{r}
+load("hw_files/data/pedigree.rda")
+ls()
+str(fam10)
+```
+
+I want to do is go to the first individual and record their MotherID and FatherID. Then I want to create a vector containing these values. I will then loop for each individual available in the pedigree. I will then delete all duplicate vectors and remove any containing NA. This will tell me how many nuclear families there are, since what matters in counting them is the mother-father combination, not the children.
+
+```{r}
+count_nuclear_families <- function(fam_data_frame) {
+  pairs <- list() #create vector to store IDs in     
+  k <- 0          #start at 0 families
+
+  #create for loop that goes individual by individual and records   their MotherID and FatherID
+  for (i in seq_len(nrow(fam_data_frame))) {
+    mom <- fam_data_frame[i, "MotherID"] #take MotherID number from ith individual
+    dad <- fam_data_frame[i, "FatherID"] #take FatherID number from ith individual
+
+    # skip founders (entries with NA)
+    if (is.na(mom) || is.na(dad)) next
+    
+    #increase counter by 1
+    k <- k + 1
+    pairs[[k]] <- c(mom, dad) #store mother-father pair in a vector
+  }
+
+  # turn list of length-2 vectors into a 2-column matrix
+  pair_mat <- do.call(rbind, pairs)
+
+  # count unique (MotherID, FatherID) rows and delete redundancy
+  n_unique <- nrow(unique(pair_mat))
+  return(n_unique)
+}
+
+
+```
+
+
 * Report the number of nuclear families for the pedigrees contained in the `.rda` file.
+
+
+```{r}
+count_nuclear_families(fam10)
+count_nuclear_families(fam50)
+count_nuclear_families(fam75)
+count_nuclear_families(fam100)
+```
+
+
